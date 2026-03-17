@@ -1,24 +1,24 @@
-from utility.loading_bar import LoadingBar
+from utility.loading_bar import LoadingBar#进度条类
 import time
 
 
 class Log:
     def __init__(self, log_each: int, initial_epoch=-1):
         self.loading_bar = LoadingBar(length=27)
-        self.best_accuracy = 0.0
+        self.best_accuracy = 0.0#最好的验证集准确率。
         self.log_each = log_each
         self.epoch = initial_epoch
 
     def train(self, len_dataset: int) -> None:
         self.epoch += 1
         if self.epoch == 0:
-            self._print_header()
+            self._print_header()#第一轮就打印表头
         else:
-            self.flush()
+            self.flush()#否则，先把上一轮验证结果完整打印出来
 
         self.is_train = True
         self.last_steps_state = {"loss": 0.0, "accuracy": 0.0, "steps": 0}
-        self._reset(len_dataset)
+        self._reset(len_dataset)#开始新的训练阶段前，把时间、step 计数、epoch 累计统计都清零。
 
     def eval(self, len_dataset: int) -> None:
         self.flush()
