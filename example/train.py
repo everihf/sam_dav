@@ -47,6 +47,7 @@ if __name__ == "__main__":
     scheduler = StepLR(optimizer, args.learning_rate, args.epochs)
 
     for epoch in range(args.epochs):
+        ###模型训练
         model.train()
         log.train(len_dataset=len(dataset.train))
 
@@ -70,6 +71,7 @@ if __name__ == "__main__":
                 log(model, loss.cpu(), correct.cpu(), scheduler.lr())
                 scheduler(epoch)
 
+        ###模型评估
         model.eval()
         log.eval(len_dataset=len(dataset.test))
 
