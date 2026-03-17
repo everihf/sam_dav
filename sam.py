@@ -13,7 +13,7 @@ class SAM(torch.optim.Optimizer):
         self.defaults.update(self.base_optimizer.defaults)
 
     @torch.no_grad()
-    def first_step(self, zero_grad=False):
+    def first_step(self, zero_grad=False):#等价于 def first_step(,,,):with torch.no_grad():
         grad_norm = self._grad_norm()
         for group in self.param_groups:
             scale = group["rho"] / (grad_norm + 1e-12)
@@ -22,6 +22,7 @@ class SAM(torch.optim.Optimizer):
                 if p.grad is None: continue
                 self.state[p]["old_p"] = p.data.clone()
                 e_w = (torch.pow(p, 2) if group["adaptive"] else 1.0) * p.grad * scale.to(p)
+                #adaptive为False时，e_w = p.grad * scale.to(p)，,,adaptive为True（自适应）时，e_w = torch.pow(p, 2) * p.grad * scale.to(p)
                 p.add_(e_w)  # climb to the local maximum "w + e(w)"
 
         if zero_grad: self.zero_grad()
