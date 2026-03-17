@@ -1,5 +1,6 @@
 import argparse
 import torch
+import logging
 
 from model.wide_res_net import WideResNet
 from model.smooth_cross_entropy import smooth_crossentropy
@@ -40,11 +41,22 @@ if __name__ == "__main__":
     #解析参数
     args = parser.parse_args()
 
+    log_path = Path(__file__).resolve().parent / "train.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_path, mode="a", encoding="utf-8"),
+        ],
+    )
+    logger = logging.getLogger("train")
+
     initialize(args, seed=42)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     dataset = Cifar(args.batch_size, args.num_workers)#Cifar10
-    log = Log(log_each=10)#每 10 个 step 打印一次训练中间结果
+    log = Log(log_each=10, logger=logger)#每 10 个 step 打印一次训练中间结果
     model = WideResNet(args.depth, args.width_factor, args.dropout, in_channels=3, labels=10).to(device)
     #WideResnet充当model
 
