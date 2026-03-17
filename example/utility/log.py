@@ -1,13 +1,15 @@
 from utility.loading_bar import LoadingBar#进度条类
 import time
+import logging
 
 
 class Log:
-    def __init__(self, log_each: int, initial_epoch=-1):
+    def __init__(self, log_each: int, initial_epoch=-1, logger=None):
         self.loading_bar = LoadingBar(length=27)
         self.best_accuracy = 0.0#最好的验证集准确率。
         self.log_each = log_each
         self.epoch = initial_epoch
+        self.logger = logger or logging.getLogger(__name__)
 
     def train(self, len_dataset: int) -> None:
         self.epoch += 1
@@ -36,17 +38,15 @@ class Log:
             loss = self.epoch_state["loss"] / self.epoch_state["steps"]
             accuracy = self.epoch_state["accuracy"] / self.epoch_state["steps"]
 
-            print(
-                f"\r┃{self.epoch:12d}  ┃{loss:12.4f}  │{100*accuracy:10.2f} %  ┃{self.learning_rate:12.3e}  │{self._time():>12}  ┃",
-                end="",
-                flush=True,
+            self.logger.info(
+                f"┃{self.epoch:12d}  ┃{loss:12.4f}  │{100*accuracy:10.2f} %  ┃{self.learning_rate:12.3e}  │{self._time():>12}  ┃"
             )
 
         else:
             loss = self.epoch_state["loss"] / self.epoch_state["steps"]
             accuracy = self.epoch_state["accuracy"] / self.epoch_state["steps"]
 
-            print(f"{loss:12.4f}  │{100*accuracy:10.2f} %  ┃", flush=True)
+            self.logger.info(f"{loss:12.4f}  │{100*accuracy:10.2f} %  ┃")
 
             if accuracy > self.best_accuracy:
                 self.best_accuracy = accuracy
@@ -68,10 +68,8 @@ class Log:
             self.last_steps_state = {"loss": 0.0, "accuracy": 0.0, "steps": 0}
             progress = self.step / self.len_dataset
 
-            print(
-                f"\r┃{self.epoch:12d}  ┃{loss:12.4f}  │{100*accuracy:10.2f} %  ┃{learning_rate:12.3e}  │{self._time():>12}  {self.loading_bar(progress)}",
-                end="",
-                flush=True,
+            self.logger.info(
+                f"┃{self.epoch:12d}  ┃{loss:12.4f}  │{100*accuracy:10.2f} %  ┃{learning_rate:12.3e}  │{self._time():>12}  {self.loading_bar(progress)}"
             )
 
     def _eval_step(self, loss, accuracy) -> None:
@@ -90,7 +88,7 @@ class Log:
         return f"{time_seconds // 60:02d}:{time_seconds % 60:02d} min"
 
     def _print_header(self) -> None:
-        print(f"┏━━━━━━━━━━━━━━┳━━━━━━━╸T╺╸R╺╸A╺╸I╺╸N╺━━━━━━━┳━━━━━━━╸S╺╸T╺╸A╺╸T╺╸S╺━━━━━━━┳━━━━━━━╸V╺╸A╺╸L╺╸I╺╸D╺━━━━━━━┓")
-        print(f"┃              ┃              ╷              ┃              ╷              ┃              ╷              ┃")
-        print(f"┃       epoch  ┃        loss  │    accuracy  ┃        l.r.  │     elapsed  ┃        loss  │    accuracy  ┃")
-        print(f"┠──────────────╂──────────────┼──────────────╂──────────────┼──────────────╂──────────────┼──────────────┨")
+        self.logger.info("┏━━━━━━━━━━━━━━┳━━━━━━━╸T╺╸R╺╸A╺╸I╺╸N╺━━━━━━━┳━━━━━━━╸S╺╸T╺╸A╺╸T╺╸S╺━━━━━━━┳━━━━━━━╸V╺╸A╺╸L╺╸I╺╸D╺━━━━━━━┓")
+        self.logger.info("┃              ┃              ╷              ┃              ╷              ┃              ╷              ┃")
+        self.logger.info("┃       epoch  ┃        loss  │    accuracy  ┃        l.r.  │     elapsed  ┃        loss  │    accuracy  ┃")
+        self.logger.info("┠──────────────╂──────────────┼──────────────╂──────────────┼──────────────╂──────────────┼──────────────┨")
