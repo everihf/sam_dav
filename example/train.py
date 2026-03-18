@@ -72,14 +72,16 @@ if __name__ == "__main__":
         for batch in dataset.train:
             inputs, targets = (b.to(device) for b in batch)
 
-            # first forward-backward step
+            ### first forward-backward step
             enable_running_stats(model)
+#“每一批数据进来时，先把它整理到差不多统一的尺度，再交给后面的网络处理。”每次用当前 mini-batch 的均值和方差，把特征(x)标准化一下。然后再加一个可学习的缩放和平移
+            #把模型里 BatchNorm 层的 momentum 恢复成原来的值，让 BN 继续正常更新 running mean / running var
             predictions = model(inputs)
-            loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)
+            loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)#标签平滑（Label Smoothing）版交叉熵
             loss.mean().backward()
             optimizer.first_step(zero_grad=True)
 
-            # second forward-backward step
+            ### second forward-backward step
             disable_running_stats(model)
             smooth_crossentropy(model(inputs), targets, smoothing=args.label_smoothing).mean().backward()
             optimizer.second_step(zero_grad=True)
