@@ -83,6 +83,7 @@ if __name__ == "__main__":
             inputs, targets = (b.to(device) for b in batch)
 
             ### first forward-backward step
+            #根据当前梯度，构造一个扰动 e(w) ,w→w+e(w)
             enable_running_stats(model)
 #“每一批数据进来时，先把它整理到差不多统一的尺度，再交给后面的网络处理。”每次用当前 mini-batch 的均值和方差，把特征(x)标准化一下。然后再加一个可学习的缩放和平移
             #把模型里 BatchNorm 层的 momentum 恢复成原来的值，让 BN 继续正常更新 running mean / running var
@@ -92,6 +93,7 @@ if __name__ == "__main__":
             optimizer.first_step(zero_grad=True)
 
             ### second forward-backward step
+            #在这个扰动后的参数点w→w+e(w)上重新算梯度，再真正更新原始参数。
             disable_running_stats(model)
             smooth_crossentropy(model(inputs), targets, smoothing=args.label_smoothing).mean().backward()
             optimizer.second_step(zero_grad=True)

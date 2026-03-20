@@ -14,6 +14,7 @@ class Cifar:
 
         dataset_class = torchvision.datasets.CIFAR10 if self.dataset == "cifar10" else torchvision.datasets.CIFAR100
         mean, std = self._get_statistics(dataset_class)
+        #自动计算数据集的均值（mean）和标准差（std），用于后面的 Normalize 标准化
 
         #数据增强||经典 CIFAR-10 baseline augmentation
         train_transform = transforms.Compose([
@@ -44,3 +45,4 @@ class Cifar:
         data = torch.cat([d[0] for d in DataLoader(train_set)])
         return data.mean(dim=[0, 2, 3]), data.std(dim=[0, 2, 3])
     #把所有训练图像拼起来，计算 每个通道的 mean / std
+    #自动计算数据集的均值（mean）和标准差（std），用于后面的 Normalize 标准化
