@@ -1,6 +1,7 @@
 import argparse
 import torch
 import logging
+from datetime import datetime
 
 from model.wide_res_net import WideResNet
 from model.smooth_cross_entropy import smooth_crossentropy
@@ -41,7 +42,9 @@ if __name__ == "__main__":
     #解析参数
     args = parser.parse_args()
 
-    log_path = Path(__file__).resolve().parent / "train.log"
+    train_start_time = datetime.now()
+    log_filename = train_start_time.strftime("%Y-%m-%d_%H-%M-%S.log")
+    log_path = Path(__file__).resolve().parent / log_filename
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
