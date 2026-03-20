@@ -15,6 +15,7 @@ class Cifar:
         dataset_class = torchvision.datasets.CIFAR10 if self.dataset == "cifar10" else torchvision.datasets.CIFAR100
         mean, std = self._get_statistics(dataset_class)
 
+        #数据增强||经典 CIFAR-10 baseline augmentation
         train_transform = transforms.Compose([
             torchvision.transforms.RandomCrop(size=(32, 32), padding=4),
             torchvision.transforms.RandomHorizontalFlip(),
@@ -35,9 +36,11 @@ class Cifar:
         self.test = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
         self.classes = train_set.classes
+        #CIFAR-10 的 classes 是：airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck
 
     def _get_statistics(self, dataset_class):
         train_set = dataset_class(root="./data", train=True, download=True, transform=transforms.ToTensor())
 
         data = torch.cat([d[0] for d in DataLoader(train_set)])
         return data.mean(dim=[0, 2, 3]), data.std(dim=[0, 2, 3])
+    #把所有训练图像拼起来，计算 每个通道的 mean / std
