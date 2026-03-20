@@ -7,8 +7,13 @@ from utility.cutout import Cutout
 
 
 class Cifar:
-    def __init__(self, batch_size, num_workers):
-        mean, std = self._get_statistics()
+    def __init__(self, batch_size, num_workers, dataset="cifar10"):
+        self.dataset = dataset.lower()
+        if self.dataset not in {"cifar10", "cifar100"}:
+            raise ValueError(f"Unsupported dataset: {dataset}. Use 'cifar10' or 'cifar100'.")
+
+        dataset_class = torchvision.datasets.CIFAR10 if self.dataset == "cifar10" else torchvision.datasets.CIFAR100
+        mean, std = self._get_statistics(dataset_class)
 
         train_transform = transforms.Compose([
             torchvision.transforms.RandomCrop(size=(32, 32), padding=4),
@@ -23,16 +28,16 @@ class Cifar:
             transforms.Normalize(mean, std)
         ])
 
-        train_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=train_transform)
-        test_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=test_transform)
+        train_set = dataset_class(root="./data", train=True, download=True, transform=train_transform)
+        test_set = dataset_class(root="./data", train=False, download=True, transform=test_transform)
 
         self.train = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers)
         self.test = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-        self.classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+        self.classes = train_set.classes
 
-    def _get_statistics(self):
-        train_set = torchvision.datasets.CIFAR10(root='./cifar', train=True, download=True, transform=transforms.ToTensor())
+    def _get_statistics(self, dataset_class):
+        train_set = dataset_class(root="./data", train=True, download=True, transform=transforms.ToTensor())
 
         data = torch.cat([d[0] for d in DataLoader(train_set)])
         return data.mean(dim=[0, 2, 3]), data.std(dim=[0, 2, 3])
