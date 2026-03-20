@@ -43,7 +43,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     train_start_time = datetime.now()
-    log_filename = train_start_time.strftime("%Y-%m-%d_%H-%M-%S.log")
+    log_filename = train_start_time.strftime("%m-%d_%H-%M.log")
     log_path = Path(__file__).resolve().parent / log_filename
     logging.basicConfig(
         level=logging.INFO,
