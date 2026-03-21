@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--dropout", default=0.0, type=float, help="Dropout rate.")
     parser.add_argument("--width_factor", default=8, type=int, help="How many times wider compared to normal ResNet.")#比普通ResNet宽多少倍
     #train
+    parser.add_argument("--optimizer", default="sam", type=str, choices=["sam", "sgd"], help="Training optimizer: 'sam' (default) or plain 'sgd' for control experiments.")
     parser.add_argument("--epochs", default=200, type=int, help="Total number of epochs.")
     parser.add_argument("--label_smoothing", default=0.1, type=float, help="Use 0.0 for no label smoothing.")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="Base learning rate at the start of the training.")
@@ -70,8 +71,24 @@ if __name__ == "__main__":
     ).to(device)
     #WideResnet充当model
 
-    base_optimizer = torch.optim.SGD
-    optimizer = SAM(model.parameters(), base_optimizer, rho=args.rho, adaptive=args.adaptive, lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
+    if args.optimizer == "sam":
+        base_optimizer = torch.optim.SGD
+        optimizer = SAM(
+            model.parameters(),
+            base_optimizer,
+            rho=args.rho,
+            adaptive=args.adaptive,
+            lr=args.learning_rate,
+            momentum=args.momentum,
+            weight_decay=args.weight_decay,
+        )
+    else:
+        optimizer = torch.optim.SGD(
+            model.parameters(),
+            lr=args.learning_rate,
+            momentum=args.momentum,
+            weight_decay=args.weight_decay,
+        )
     scheduler = StepLR(optimizer, args.learning_rate, args.epochs)
 
     for epoch in range(args.epochs):
@@ -82,21 +99,27 @@ if __name__ == "__main__":
         for batch in dataset.train:
             inputs, targets = (b.to(device) for b in batch)
 
-            ### first forward-backward step
-            #根据当前梯度，构造一个扰动 e(w) ,w→w+e(w)
-            enable_running_stats(model)
-#“每一批数据进来时，先把它整理到差不多统一的尺度，再交给后面的网络处理。”每次用当前 mini-batch 的均值和方差，把特征(x)标准化一下。然后再加一个可学习的缩放和平移
-            #把模型里 BatchNorm 层的 momentum 恢复成原来的值，让 BN 继续正常更新 running mean / running var
-            predictions = model(inputs)
-            loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)#标签平滑（Label Smoothing）版交叉熵
-            loss.mean().backward()
-            optimizer.first_step(zero_grad=True)
+            if args.optimizer == "sam":
+                ### first forward-backward step
+                #根据当前梯度，构造一个扰动 e(w) ,w→w+e(w)
+                enable_running_stats(model)
+                #把模型里 BatchNorm 层的 momentum 恢复成原来的值，让 BN 继续正常更新 running mean / running var
+                predictions = model(inputs)
+                loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)#标签平滑（Label Smoothing）版交叉熵
+                loss.mean().backward()
+                optimizer.first_step(zero_grad=True)
 
-            ### second forward-backward step
-            #在这个扰动后的参数点w→w+e(w)上重新算梯度，再真正更新原始参数。
-            disable_running_stats(model)
-            smooth_crossentropy(model(inputs), targets, smoothing=args.label_smoothing).mean().backward()
-            optimizer.second_step(zero_grad=True)
+                ### second forward-backward step
+                #在这个扰动后的参数点w→w+e(w)上重新算梯度，再真正更新原始参数。
+                disable_running_stats(model)
+                smooth_crossentropy(model(inputs), targets, smoothing=args.label_smoothing).mean().backward()
+                optimizer.second_step(zero_grad=True)
+            else:
+                predictions = model(inputs)
+                loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)#标签平滑（Label Smoothing）版交叉熵
+                optimizer.zero_grad()
+                loss.mean().backward()
+                optimizer.step()
 
             with torch.no_grad():
                 correct = torch.argmax(predictions.data, 1) == targets
