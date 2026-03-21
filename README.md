@@ -24,6 +24,16 @@ This is an **unofficial** repository for [Sharpness-Aware Minimization for Effic
 
 ## Usage
 
+### Run baseline SGD (control experiment)
+
+If you want to run plain SGD as a control experiment against SAM in this repository's CIFAR example, use:
+
+```bash
+python example/train.py --optimizer sgd
+```
+
+The default remains `--optimizer sam`.
+
 It should be straightforward to use SAM in your training pipeline. Just keep in mind that the training will run twice as slow, because SAM needs two forward-backward passes to estime the "sharpness-aware" gradient. If you're using gradient clipping, make sure to change only the magnitude of gradients, not their direction.
 
 ```python
