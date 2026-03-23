@@ -101,19 +101,20 @@ if __name__ == "__main__":
 
             if args.optimizer == "sam":
                 ### first forward-backward step
-                #根据当前梯度，构造一个扰动 e(w) ,w→w+e(w)
+                #根据当前梯度，构造一个扰动 e(w) ,w→w+e(w),第一次反向传播得到的梯度用来算出e(w)
                 enable_running_stats(model)
                 #把模型里 BatchNorm 层的 momentum 恢复成原来的值，让 BN 继续正常更新 running mean / running var
-                predictions = model(inputs)
+                predictions = model(inputs)#第一次前向传播
                 loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)#标签平滑（Label Smoothing）版交叉熵
-                loss.mean().backward()
-                optimizer.first_step(zero_grad=True)
+                loss.mean().backward()#第一次反向传播得到的梯度用来算出e(w)
+                optimizer.first_step(zero_grad=True)#w→w+e(w)
 
                 ### second forward-backward step
                 #在这个扰动后的参数点w→w+e(w)上重新算梯度，再真正更新原始参数。
-                disable_running_stats(model)
-                smooth_crossentropy(model(inputs), targets, smoothing=args.label_smoothing).mean().backward()
-                optimizer.second_step(zero_grad=True)
+                disable_running_stats(model)#如果此时也更新 BatchNorm 的 running stats，就会把同一个 batch 的信息重复写入，产生偏差。
+                smooth_crossentropy(model(inputs), targets, smoothing=args.label_smoothing).mean().backward()#model(inputs):第二次前向传播，得到 w+e(w) 处的输出，再算损失和梯度。
+                #第二次反向传播：损失函数L(w+e(w))，求w+e(w)处梯度
+                optimizer.second_step(zero_grad=True)#w+e(w)→w，w->w-η*∇L(w+e(w))
             else:
                 predictions = model(inputs)
                 loss = smooth_crossentropy(predictions, targets, smoothing=args.label_smoothing)#标签平滑（Label Smoothing）版交叉熵

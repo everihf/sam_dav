@@ -14,7 +14,7 @@ class SAM(torch.optim.Optimizer):
 
     @torch.no_grad()#因为这里的 p.add_(e_w) 只是优化器手动改参数，不是神经网络前向传播的一部分。
     def first_step(self, zero_grad=False):#等价于 def first_step(,,,):with torch.no_grad():
-        grad_norm = self._grad_norm() #||∇​L(w)||_2​  2阶梯度范数
+        grad_norm = self._grad_norm() #||∇​L(w)||_2​  梯度的L2范数
         for group in self.param_groups:
             #PyTorch 优化器里经常有多个 param_group，每组可以有不同超参数，
             #比如：不同学习率，不同 weight decay，不同 rho，是否 adaptive，这里就是逐组处理。
@@ -37,13 +37,13 @@ class SAM(torch.optim.Optimizer):
         for group in self.param_groups:
             for p in group["params"]:
                 if p.grad is None: continue
-                p.data = self.state[p]["old_p"]  # get back to "w" from "w + e(w)"
+                p.data = self.state[p]["old_p"]  # w+e(w)→w
 
-        self.base_optimizer.step()  # do the actual "sharpness-aware" update
+        self.base_optimizer.step()  # 参数更新：锐度感知更新
 
         if zero_grad: self.zero_grad()
 
-    def _grad_norm(self):#把所有参数的梯度展平拼成一个超长向量，再求整体二范数
+    def _grad_norm(self):#把所有参数的梯度展平拼成一个超长向量，再求整体L2范数
         shared_device = self.param_groups[0]["params"][0].device  # 将所有内容放在同一设备上，以防模型并行.拿第一个参数所在的设备，作为统一设备。
         norm = torch.norm(
                     torch.stack([#stack 的 tensor 必须在同一设备上。如果模型并行或不同参数在不同设备，不先统一会报错。
